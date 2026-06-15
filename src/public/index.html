@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Briefapp.Zap — WhatsApp Pool & Chatbot Agêntico</title>
+  <meta name="description" content="Pool de envio e recebimento WhatsApp com chatbot agêntico Gemini. Por brief.app.br">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E9506E'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='system-ui' font-weight='800' font-size='18' fill='white'%3EB%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">B</div>
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-name">Briefapp.Zap</span>
+          <span class="sidebar-brand-sub">WhatsApp Pool</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section-label">Principal</div>
+
+        <button class="nav-item active" data-view="dashboard" id="nav-dashboard">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </button>
+
+        <button class="nav-item" data-view="keywords" id="nav-keywords">
+          <span class="nav-icon">💬</span>
+          Palavras-Chave
+        </button>
+
+        <button class="nav-item" data-view="registration" id="nav-registration">
+          <span class="nav-icon">📋</span>
+          Campos de Cadastro
+        </button>
+
+        <button class="nav-item" data-view="contacts" id="nav-contacts">
+          <span class="nav-icon">👥</span>
+          Contatos
+        </button>
+
+        <button class="nav-item" data-view="whitelist" id="nav-whitelist">
+          <span class="nav-icon">🛡️</span>
+          Whitelist
+        </button>
+
+        <div class="sidebar-section-label">Sistema</div>
+
+        <button class="nav-item" data-view="settings" id="nav-settings">
+          <span class="nav-icon">⚙️</span>
+          Configurações
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-status">
+          <span class="status-dot disconnected" id="sidebar-status-dot"></span>
+          <span id="sidebar-status-text">Desconectado</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="main-content">
+
+      <!-- Header -->
+      <header class="content-header">
+        <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+        <h1 id="page-title">Dashboard</h1>
+        <div class="content-header-actions" id="header-actions"></div>
+      </header>
+
+      <!-- Views -->
+      <div class="content-body">
+
+        <!-- ═══ DASHBOARD VIEW ═══ -->
+        <div class="view active" id="view-dashboard">
+          <!-- Stats -->
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-icon whatsapp">📱</div>
+              <div class="stat-card-value" id="stat-sessions">0</div>
+              <div class="stat-card-label">Sessões Ativas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon green">📩</div>
+              <div class="stat-card-value" id="stat-received">0</div>
+              <div class="stat-card-label">Recebidas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon blue">📤</div>
+              <div class="stat-card-value" id="stat-sent">0</div>
+              <div class="stat-card-label">Enviadas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-icon purple">👥</div>
+              <div class="stat-card-value" id="stat-contacts">0</div>
+              <div class="stat-card-label">Contatos</div>
+            </div>
+          </div>
+
+          <!-- Connection Card -->
+          <div class="card mb-6">
+            <div class="card-header">
+              <h2>📱 Conexão WhatsApp</h2>
+              <div class="flex gap-2">
+                <button class="btn btn-success btn-sm" id="btn-connect" onclick="app.connectSession()">
+                  Conectar
+                </button>
+                <button class="btn btn-danger btn-sm" id="btn-disconnect" style="display:none" onclick="app.disconnectSession()">
+                  Desconectar
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="connection-status">
+                <div class="connection-banner disconnected" id="connection-banner">
+                  <span class="status-dot disconnected"></span>
+                  <span>Nenhuma sessão conectada. Clique em <strong>Conectar</strong> para iniciar.</span>
+                </div>
+              </div>
+              <div class="qr-container" id="qr-container" style="display:none">
+                <div class="qr-code" id="qr-box">
+                  <div class="qr-placeholder">
+                    <div class="spinner spinner-lg"></div>
+                    <p class="mt-4 text-sm text-muted">Gerando QR Code...</p>
+                  </div>
+                </div>
+                <p class="qr-instructions">
+                  Abra o <strong>WhatsApp</strong> no celular → <strong>Dispositivos conectados</strong> → <strong>Conectar dispositivo</strong> → Escaneie o QR Code acima
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Messages -->
+          <div class="card">
+            <div class="card-header">
+              <h2>💬 Mensagens Recentes</h2>
+              <span class="badge badge-neutral" id="msg-count">0 mensagens</span>
+            </div>
+            <div class="card-body" id="recent-messages">
+              <div class="empty-state">
+                <div class="empty-state-icon">💬</div>
+                <h3>Nenhuma mensagem ainda</h3>
+                <p>As mensagens recebidas aparecerão aqui em tempo real.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ KEYWORDS VIEW ═══ -->
+        <div class="view" id="view-keywords">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <div class="section-label">Automação</div>
+              <p class="text-sm text-muted">Defina palavras-chave e respostas automáticas de saudação.</p>
+            </div>
+            <button class="btn btn-primary" onclick="app.showKeywordModal()">
+              + Nova Palavra-Chave
+            </button>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Palavra-Chave</th>
+                    <th>Resposta</th>
+                    <th>Inicia Diálogo</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="keywords-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ REGISTRATION VIEW ═══ -->
+        <div class="view" id="view-registration">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <div class="section-label">Dados Cadastrais</div>
+              <p class="text-sm text-muted">Configure os campos obrigatórios que o chatbot irá solicitar.</p>
+            </div>
+            <button class="btn btn-primary" onclick="app.showFieldModal()">
+              + Novo Campo
+            </button>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Campo</th>
+                    <th>Label</th>
+                    <th>Tipo</th>
+                    <th>Obrigatório</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="fields-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ CONTACTS VIEW ═══ -->
+        <div class="view" id="view-contacts">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <div class="section-label">Base de Contatos</div>
+              <p class="text-sm text-muted">Contatos cadastrados via WhatsApp.</p>
+            </div>
+            <div class="flex gap-2">
+              <input class="input" id="contact-search" placeholder="Buscar contato..." style="width:240px" oninput="app.filterContacts(this.value)">
+              <button class="btn btn-outline btn-sm" onclick="app.exportCSV()">📥 Export CSV</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr id="contacts-table-head">
+                    <th>ID</th>
+                    <th>Telefone</th>
+                    <th>Nome</th>
+                    <th>Última Msg</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="contacts-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ WHITELIST VIEW ═══ -->
+        <div class="view" id="view-whitelist">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <div class="section-label">Whitelist</div>
+              <p class="text-sm text-muted">Defina os números autorizados a interagir livremente com a Inteligência Artificial.</p>
+            </div>
+            <button class="btn btn-primary" onclick="app.showWhitelistModal()">
+              + Novo Número
+            </button>
+          </div>
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Telefone</th>
+                    <th>Nome / Descrição</th>
+                    <th>Adicionado em</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="whitelist-table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SETTINGS VIEW ═══ -->
+        <div class="view" id="view-settings">
+          <div class="section-label">Configurações</div>
+
+          <!-- Gemini API Key -->
+          <div class="card mb-6">
+            <div class="card-header">
+              <h2>🔑 Chave da API Gemini</h2>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">API Key (Gemini Flash Lite)</label>
+                <div class="input-password">
+                  <input class="input" type="password" id="input-api-key" placeholder="Cole sua chave da API Gemini aqui...">
+                  <button class="toggle-visibility" onclick="app.toggleApiKeyVisibility()">👁</button>
+                </div>
+                <p class="form-hint">Obtenha em <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--rose-500)">Google AI Studio</a></p>
+              </div>
+              <div class="flex gap-3">
+                <button class="btn btn-primary" onclick="app.saveApiKey()">Salvar Chave</button>
+                <button class="btn btn-outline" onclick="app.testGemini()">🧪 Testar Conexão</button>
+              </div>
+              <div id="gemini-test-result" class="mt-4"></div>
+            </div>
+          </div>
+
+          <!-- Agent Goals -->
+          <div class="card mb-6">
+            <div class="card-header">
+              <h2>🎯 Objetivos do Agente</h2>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Defina o que o agente IA deve fazer</label>
+                <textarea class="input" id="input-agent-goals" placeholder="Ex: Você deve atender clientes de uma loja de roupas. Informe sobre promoções, ajude na escolha de produtos e encaminhe para o atendente humano quando necessário." rows="4"></textarea>
+                <p class="form-hint">Quanto mais detalhado, melhor o agente irá atuar.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Personalidade do Agente</label>
+                <textarea class="input" id="input-agent-personality" placeholder="Ex: Você é a Bia, assistente virtual simpática e prestativa da Loja XYZ." rows="3"></textarea>
+                <p class="form-hint">Define como o agente se apresenta e o tom de comunicação.</p>
+              </div>
+              <button class="btn btn-primary" onclick="app.saveAgentConfig()">Salvar Configurações do Agente</button>
+            </div>
+          </div>
+
+          <!-- Model Selection -->
+          <div class="card">
+            <div class="card-header">
+              <h2>🤖 Modelo IA</h2>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Modelo Gemini</label>
+                <select class="input" id="input-gemini-model">
+                  <optgroup label="Última Geração (Recomendado)">
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash — Mais rápido e inteligente, ideal para agentes</option>
+                    <option value="gemini-3.1-pro">Gemini 3.1 Pro — Raciocínio complexo e tarefas analíticas</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite — Econômico, alto volume, baixa latência</option>
+                  </optgroup>
+                  <optgroup label="Geração Anterior">
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro — Pensamento profundo e raciocínio avançado</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash — Pensamento rápido, custo balanceado</option>
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite — Custo ultra-baixo</option>
+                  </optgroup>
+                </select>
+                <p class="form-hint">O modelo Flash Lite é recomendado para chatbots de alto volume.</p>
+              </div>
+              <button class="btn btn-primary" onclick="app.saveModelConfig()">Salvar Modelo</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ MODAL ═══ -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Modal</h2>
+        <button class="btn btn-ghost btn-icon" onclick="app.closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- ═══ TOAST ═══ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

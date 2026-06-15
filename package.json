@@ -1,0 +1,24 @@
+{
+  "name": "briefapp-zap",
+  "version": "1.0.0",
+  "description": "Briefapp.Zap — Pool de envio e recebimento WhatsApp com chatbot agêntico Gemini",
+  "type": "module",
+  "main": "src/server/index.js",
+  "scripts": {
+    "dev": "node --watch src/server/index.js",
+    "start": "node src/server/index.js"
+  },
+  "keywords": ["whatsapp", "baileys", "gemini", "chatbot", "briefapp"],
+  "author": "brief.app.br",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "@whiskeysockets/baileys": "^6.7.16",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {}
+}
