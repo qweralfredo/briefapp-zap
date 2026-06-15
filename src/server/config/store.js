@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 const DATA_DIR = join(__dirname, '..', '..', '..', 'data');
 const CONFIG_PATH = join(DATA_DIR, 'config.json');
 const CONTACTS_PATH = join(DATA_DIR, 'contacts.json');
+const LID_MAP_PATH = join(DATA_DIR, 'lid_map.json');
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
@@ -260,13 +261,21 @@ class ConfigStore {
   }
 
   getContact(phone) {
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     return this.getContacts().find(c => c.phone === normalized);
   }
 
   saveContact(phone, data) {
     const contacts = this.getContacts();
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     const idx = contacts.findIndex(c => c.phone === normalized);
     
     let contact;
@@ -298,13 +307,21 @@ class ConfigStore {
   }
 
   deleteContact(phone) {
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     this._contacts = this.getContacts().filter(c => c.phone !== normalized);
     writeJSON(CONTACTS_PATH, this._contacts);
   }
 
   updateContactNameEverywhere(phone, name) {
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     
     // 1. Update Whitelist
     const config = this.getRawConfig();
@@ -342,7 +359,11 @@ class ConfigStore {
   addToWhitelist(phone, name = '') {
     const config = this.getRawConfig();
     const whitelist = config.whitelist || [];
-    const normalized = phone.replace(/\D/g, '');
+    let normalized = phone.replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     if (whitelist.find(w => w.phone === normalized)) {
       return null; // already exists
     }
@@ -364,7 +385,11 @@ class ConfigStore {
 
   removeFromWhitelistByPhone(phone) {
     const config = this.getRawConfig();
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     config.whitelist = (config.whitelist || []).filter(w => {
       const entryPhone = w.phone.replace(/\D/g, '');
       return !normalized.includes(entryPhone) && !entryPhone.includes(normalized);
@@ -375,7 +400,11 @@ class ConfigStore {
 
   isWhitelisted(phone) {
     const whitelist = this.getWhitelist();
-    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    let normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const mapped = this.resolveLidToPhone(phone);
+    if (mapped) {
+      normalized = mapped;
+    }
     return whitelist.some(w => normalized.includes(w.phone) || w.phone.includes(normalized));
   }
 
@@ -412,6 +441,30 @@ class ConfigStore {
       whitelistCount: this.getWhitelist().length,
       hasApiKey: !!this.getDecryptedApiKey()
     };
+  }
+
+  // ── LID Mapping ──
+  getLidMap() {
+    return readJSON(LID_MAP_PATH, {});
+  }
+
+  saveLidMap(lid, phone) {
+    const cleanLid = lid.replace(/@.+$/, '').replace(/\D/g, '');
+    const cleanPhone = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    if (!cleanLid || !cleanPhone) return;
+
+    const map = this.getLidMap();
+    if (map[cleanLid] !== cleanPhone) {
+      map[cleanLid] = cleanPhone;
+      writeJSON(LID_MAP_PATH, map);
+      console.log(`[Store] 🛡️ Gravado mapeamento LID: ${cleanLid} ↔ Telefone: ${cleanPhone}`);
+    }
+  }
+
+  resolveLidToPhone(phoneOrLid) {
+    const clean = phoneOrLid.replace(/@.+$/, '').replace(/\D/g, '');
+    const map = this.getLidMap();
+    return map[clean] || null;
   }
 }
 

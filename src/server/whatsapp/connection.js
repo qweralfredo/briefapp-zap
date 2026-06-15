@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { mkdirSync, existsSync, rmSync } from 'fs';
 import QRCode from 'qrcode';
 import { EventEmitter } from 'events';
+import store from '../config/store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -140,9 +141,36 @@ export class WhatsAppConnection extends EventEmitter {
           this._messageCount.received++;
 
           let sender = msg.key.remoteJid;
+          
           // Resolve LID to phone JID if possible
           if (sender && sender.endsWith('@lid')) {
-            sender = msg.key.remoteJidAlt || msg.key.senderPn || msg.sender || sender;
+            const altJid = msg.key.remoteJidAlt || msg.key.senderPn || msg.senderPn;
+            if (altJid) {
+              store.saveLidMap(sender, altJid);
+              sender = altJid;
+            } else {
+              // Fallback to signalRepository.lidMapping
+              let resolvedPhone = null;
+              if (this.sock?.signalRepository?.lidMapping?.getPNForLID) {
+                try {
+                  resolvedPhone = await this.sock.signalRepository.lidMapping.getPNForLID(sender);
+                } catch (err) {
+                  // ignore
+                }
+              }
+
+              if (resolvedPhone) {
+                store.saveLidMap(sender, resolvedPhone);
+                sender = resolvedPhone.includes('@') ? resolvedPhone : `${resolvedPhone}@s.whatsapp.net`;
+              } else {
+                const resolved = store.resolveLidToPhone(sender);
+                if (resolved) {
+                  sender = `${resolved}@s.whatsapp.net`;
+                } else {
+                  sender = msg.sender || sender;
+                }
+              }
+            }
           }
           
           const pushName = msg.pushName || '';
@@ -157,6 +185,27 @@ export class WhatsAppConnection extends EventEmitter {
             timestamp: msg.messageTimestamp,
             raw: msg
           });
+        }
+      });
+
+      // ── Sync Contacts & LID mappings ──
+      this.sock.ev.on('contacts.upsert', (contacts) => {
+        for (const contact of contacts) {
+          const lid = contact.lid || (contact.id && contact.id.endsWith('@lid') ? contact.id : null);
+          const phone = contact.jid || (contact.id && contact.id.endsWith('@s.whatsapp.net') ? contact.id : null);
+          if (lid && phone) {
+            store.saveLidMap(lid, phone);
+          }
+        }
+      });
+
+      this.sock.ev.on('contacts.update', (contacts) => {
+        for (const contact of contacts) {
+          const lid = contact.lid || (contact.id && contact.id.endsWith('@lid') ? contact.id : null);
+          const phone = contact.jid || (contact.id && contact.id.endsWith('@s.whatsapp.net') ? contact.id : null);
+          if (lid && phone) {
+            store.saveLidMap(lid, phone);
+          }
         }
       });
 
