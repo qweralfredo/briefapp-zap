@@ -220,16 +220,38 @@ class ConfigStore {
   // ── Contacts ──
   getContacts() {
     if (!this._contacts) {
-      this._contacts = readJSON(CONTACTS_PATH, []);
-      // Auto-assign IDs to contacts that don't have one
+      const raw = readJSON(CONTACTS_PATH, []);
+      const uniqueContacts = new Map();
       let hasChanges = false;
-      this._contacts = this._contacts.map(c => {
-        if (!c.id) {
-          c.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+      for (const c of raw) {
+        const normalizedPhone = c.phone.replace(/@.+$/, '').replace(/\D/g, '');
+        if (c.phone !== normalizedPhone) {
           hasChanges = true;
         }
-        return c;
-      });
+        
+        const contactId = c.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        if (!c.id) {
+          hasChanges = true;
+        }
+
+        const normalizedContact = {
+          ...c,
+          id: contactId,
+          phone: normalizedPhone
+        };
+
+        // If duplicate phone, merge them
+        if (uniqueContacts.has(normalizedPhone)) {
+          hasChanges = true;
+          const existing = uniqueContacts.get(normalizedPhone);
+          uniqueContacts.set(normalizedPhone, { ...existing, ...normalizedContact });
+        } else {
+          uniqueContacts.set(normalizedPhone, normalizedContact);
+        }
+      }
+
+      this._contacts = Array.from(uniqueContacts.values());
       if (hasChanges) {
         writeJSON(CONTACTS_PATH, this._contacts);
       }
