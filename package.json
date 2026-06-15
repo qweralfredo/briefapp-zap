@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/server/index.js",
   "scripts": {
-    "dev": "node --watch src/server/index.js",
+    "dev": "node --watch-path=src/server src/server/index.js",
     "start": "node src/server/index.js"
   },
   "keywords": ["whatsapp", "baileys", "gemini", "chatbot", "briefapp"],
