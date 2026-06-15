@@ -204,11 +204,20 @@ ${fieldsDescription || 'Nenhum campo configurado.'}
 
         if (call.name === 'salvar_dados') {
           store.saveContact(phone, call.args);
+          
+          const registeredName = call.args.nome || call.args.name || call.args.pushName || '';
+
           // Auto-whitelist upon LLM tool data save
           if (!store.isWhitelisted(phone)) {
-            store.addToWhitelist(phone, call.args.nome || 'Cadastro via IA');
+            store.addToWhitelist(phone, registeredName || 'Cadastro via IA');
             console.log(`[Gemini] 🛡️ Contato ${phone} adicionado à Whitelist após salvar_dados.`);
           }
+
+          // Sync name everywhere (both contacts and whitelist)
+          if (registeredName) {
+            store.updateContactNameEverywhere(phone, registeredName);
+          }
+
           return {
             text: responseText,
             action: 'save_data',

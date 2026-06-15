@@ -238,19 +238,21 @@ class ConfigStore {
   }
 
   getContact(phone) {
-    return this.getContacts().find(c => c.phone === phone);
+    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    return this.getContacts().find(c => c.phone === normalized);
   }
 
   saveContact(phone, data) {
     const contacts = this.getContacts();
-    const idx = contacts.findIndex(c => c.phone === phone);
+    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    const idx = contacts.findIndex(c => c.phone === normalized);
     
     let contact;
     if (idx >= 0) {
       contact = {
         ...contacts[idx],
         ...data,
-        phone,
+        phone: normalized,
         updatedAt: new Date().toISOString()
       };
       if (!contact.id) {
@@ -260,7 +262,7 @@ class ConfigStore {
     } else {
       contact = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        phone,
+        phone: normalized,
         ...data,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -274,8 +276,40 @@ class ConfigStore {
   }
 
   deleteContact(phone) {
-    this._contacts = this.getContacts().filter(c => c.phone !== phone);
+    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    this._contacts = this.getContacts().filter(c => c.phone !== normalized);
     writeJSON(CONTACTS_PATH, this._contacts);
+  }
+
+  updateContactNameEverywhere(phone, name) {
+    const normalized = phone.replace(/@.+$/, '').replace(/\D/g, '');
+    
+    // 1. Update Whitelist
+    const config = this.getRawConfig();
+    let whitelistChanged = false;
+    config.whitelist = (config.whitelist || []).map(w => {
+      const entryPhone = w.phone.replace(/\D/g, '');
+      if (entryPhone === normalized) {
+        whitelistChanged = true;
+        return { ...w, name };
+      }
+      return w;
+    });
+    if (whitelistChanged) {
+      this._config = config;
+      writeJSON(CONFIG_PATH, config);
+    }
+
+    // 2. Update Contacts
+    const contacts = this.getContacts();
+    const idx = contacts.findIndex(c => c.phone === normalized);
+    if (idx >= 0) {
+      contacts[idx].pushName = name;
+      contacts[idx].nome = name;
+      contacts[idx].updatedAt = new Date().toISOString();
+      this._contacts = contacts;
+      writeJSON(CONTACTS_PATH, contacts);
+    }
   }
 
   // ── Whitelist ──

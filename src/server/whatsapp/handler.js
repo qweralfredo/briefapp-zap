@@ -157,10 +157,18 @@ export class MessageHandler {
       store.saveContact(from, { ...state.data, registeredAt: new Date().toISOString() });
       this._registrationState.delete(from);
 
+      // Extract registered name
+      const registeredName = state.data.nome || state.data.name || state.data.pushName || '';
+
       // Auto-whitelist upon registration completion
       if (!store.isWhitelisted(from)) {
-        store.addToWhitelist(from, state.data.nome || 'Cadastro Concluído');
+        store.addToWhitelist(from, registeredName || 'Cadastro Concluído');
         console.log(`[Handler] 🛡️ Contato ${from} adicionado à Whitelist após cadastro finalizado.`);
+      }
+
+      // Sync name everywhere (both contacts and whitelist)
+      if (registeredName) {
+        store.updateContactNameEverywhere(from, registeredName);
       }
 
       await this.sessionManager.sendMessage(
