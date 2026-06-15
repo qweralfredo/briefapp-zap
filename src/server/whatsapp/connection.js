@@ -139,7 +139,12 @@ export class WhatsAppConnection extends EventEmitter {
 
           this._messageCount.received++;
 
-          const sender = msg.key.remoteJid;
+          let sender = msg.key.remoteJid;
+          // Resolve LID to phone JID if possible
+          if (sender && sender.endsWith('@lid')) {
+            sender = msg.key.remoteJidAlt || msg.key.senderPn || msg.sender || sender;
+          }
+          
           const pushName = msg.pushName || '';
 
           console.log(`[WhatsApp:${this.sessionId}] 📨 Msg de ${sender} (${pushName}): "${text.trim()}"`);
